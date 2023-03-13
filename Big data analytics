@@ -1,0 +1,632 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "authorship_tag": "ABX9TyOiZqcJOYxZYkhpHqaXb7Lz",
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    },
+    "gpuClass": "standard"
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/Henrymessi/Big-Data-Analytics/blob/main/Big%20data%20analytics\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "dcemGVxmmJUE"
+      },
+      "outputs": [],
+      "source": [
+        "import os\n",
+        "import sys\n",
+        "import pandas as pd\n",
+        "from pandas import DataFrame\n",
+        "import numpy as np\n",
+        "import matplotlib.pyplot as plt\n",
+        "import matplotlib.ticker as mtick\n",
+        "import matplotlib\n",
+        "from mpl_toolkits.mplot3d import Axes3D\n",
+        "import math\n",
+        "from IPython.core.interactiveshell import InteractiveShell\n",
+        "from datetime import *\n",
+        "import statistics as stats\n",
+        "# This helps auto print out the items without explixitly using 'print'\n",
+        "InteractiveShell.ast_node_interactivity = \"all\" \n",
+        "%matplotlib inline"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "!pip install pyspark"
+      ],
+      "metadata": {
+        "id": "S7im52xEmQxI"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import pyspark\n",
+        "from pyspark.rdd import RDD\n",
+        "from pyspark.sql import Row\n",
+        "from pyspark.sql import DataFrame\n",
+        "from pyspark.sql import SparkSession\n",
+        "from pyspark.sql import SQLContext\n",
+        "from pyspark.sql import functions\n",
+        "from pyspark.sql.functions import lit, desc, col, size, array_contains\\\n",
+        ", isnan, udf, hour, array_min, array_max, countDistinct\n",
+        "from pyspark.sql.types import *\n"
+      ],
+      "metadata": {
+        "id": "b5E6HywcmmVC"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "spark = SparkSession.builder.appName(\"answers\").getOrCreate()\n",
+        "\n",
+        "path = \"/content/sample_data/fashion_dataset.csv\"\n"
+      ],
+      "metadata": {
+        "id": "yUGim8slnkC0"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "df = spark.read.option(\"header\",'True').option('delimiter', ',').csv(path)\n",
+        "print('Data overview')\n",
+        "df.show(10, True)\n",
+        "df.printSchema()"
+      ],
+      "metadata": {
+        "id": "CgaOx3e-nqB5"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "df.describe().show()\n",
+        "print(f'The total number of rows are: {df.count()}')\n"
+      ],
+      "metadata": {
+        "id": "URjL6Drlnvo0"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "path_2 = \"/content/sample_data/fashion_brand.csv\"\n",
+        "df_2 = spark.read.option(\"header\",'True').option('delimiter', ',').csv(path_2)\n",
+        "print('Data overview for fashion_brand')\n",
+        "df_2.show(10, True)\n",
+        "df_2.printSchema()"
+      ],
+      "metadata": {
+        "id": "STMLeLs2qTXC"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "df_2.describe().show()\n",
+        "print(f'The total number of rows in the fashion_brand dataset are: {df_2.count()}')"
+      ],
+      "metadata": {
+        "id": "fUEHZjQfroyc"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# ======rename the brand_name column to brand in fashion_brand dataset===========\n",
+        "\n",
+        "df_3 = df_2.withColumnRenamed(\"brand_name\",\"brand\")\n",
+        "df_3.describe().show()"
+      ],
+      "metadata": {
+        "id": "fAaogBtlr9q2"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# ===================change all words in the two datasets to lowercase using SQL function================\n",
+        "\n",
+        "import pyspark.sql.functions as f\n",
+        "f_data=df.select(\"*\", f.lower(\"brand\"))\n",
+        "b_data=df_3.select(\"*\", f.lower(\"brand\"))\n",
+        "f_data\n",
+        "b_data\n"
+      ],
+      "metadata": {
+        "id": "TI-wJ5LGsJrV"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# ================delete previous column brand in the datasets===================\n",
+        "f_del = f_data.drop('brand', 'p_attributes', 'description')\n",
+        "b_del = b_data.drop('brand')\n",
+        "f_del\n",
+        "b_del\n"
+      ],
+      "metadata": {
+        "id": "Yq8pSu2-sVpC"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# ==================== Rename the column name from lower(brand) to brand=========\n",
+        "\n",
+        "f_1=f_del.withColumnRenamed(\"lower(brand)\",\"brand\")\n",
+        "f_2=b_del.withColumnRenamed(\"lower(brand)\",\"brand\")\n",
+        "f_1.limit(5).show()\n",
+        "f_2.limit(5).show()"
+      ],
+      "metadata": {
+        "id": "JvmlBuNV7lve"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# ======================merge the two datasets============================\n",
+        "new_data = f_1.join(f_2, f_1.brand==f_2.brand, 'outer').drop(f_1.brand)\n",
+        "new_data.limit(5).show()"
+      ],
+      "metadata": {
+        "id": "CoXGkTG_7t9l"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# =====================Describe Newdataset================================\n",
+        "new_data.describe().show()\n",
+        "\n",
+        "c=new_data.na.drop(subset=[\"p_id\",\"name\", \"colour\"])\n",
+        "c.describe().show()"
+      ],
+      "metadata": {
+        "id": "xyGzJiKG8Aec"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# ========replace empty cells on ratingCount and avg_rating columns with the mean of datasets closer to the cells from pyspark.sql import functions as F, Window =========\n",
+        "\n",
+        "from pyspark.sql import Window \n",
+        "\n",
+        "exclude = [\"name\", \"colour\"]\n",
+        "avg_new_data = c.select(\n",
+        "    *(\n",
+        "        f.coalesce(f.col(col), f.avg(col).over(Window.orderBy(f.lit(1)))).alias(col)\n",
+        "        if col.lower() not in exclude\n",
+        "        else f.col(col)\n",
+        "        for col in new_data.columns\n",
+        "    )\n",
+        ")\n",
+        "avg_new_data.describe().show()"
+      ],
+      "metadata": {
+        "id": "ucS0ou_e8Kaj"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# ==========fill the null cells with zero in the ratingCount and avg_rating columns======\n",
+        "a_data = avg_new_data.na.fill(value=0,subset=[\"ratingCount\"])\n",
+        "b_data = a_data.na.fill(value=0,subset=[\"avg_rating\"])\n",
+        "b_data.describe().show()"
+      ],
+      "metadata": {
+        "id": "U6BAem458iUx"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# =========================remove duplicates===============================\n",
+        "new_dataset_zero = b_data.dropDuplicates()\n",
+        "new_dataset_zero.describe().show()"
+      ],
+      "metadata": {
+        "id": "l9xOBSWVLzAG"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# =========================== Linear Regression Analysis ================================\n",
+        "from pyspark.sql import SparkSession\n",
+        "\n",
+        "spark = SparkSession \\\n",
+        "    .builder \\\n",
+        "    .appName(\"Python Spark regression example\") \\\n",
+        "    .config(\"spark.some.config.option\", \"some-value\") \\\n",
+        "    .getOrCreate()"
+      ],
+      "metadata": {
+        "id": "NzzgsFQjajoa"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "new_dataset_zero.describe().show()"
+      ],
+      "metadata": {
+        "id": "zgNWn1komJPt"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# =============================Converting String to index=================\n",
+        "from pyspark.ml.feature import StringIndexer\n",
+        "from pyspark.ml import Pipeline\n",
+        "from pyspark.sql.functions import col\n",
+        "indexer = [StringIndexer(inputCol=column, outputCol=column+\"_index\") for column in list(set(new_dataset_zero.columns)-set(['count'])) ]\n",
+        "pipeline = Pipeline(stages=indexer)\n",
+        "transformed = pipeline.fit(new_dataset_zero).transform(new_dataset_zero)\n",
+        "transformed.show(10)"
+      ],
+      "metadata": {
+        "id": "vH4gd1MBELuV"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "df_new = transformed.drop('p_id', 'name', 'price', 'colour', 'ratingCount', 'avg_rating', 'brand_id', 'brand')"
+      ],
+      "metadata": {
+        "id": "B1_2WQgBEroY"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "df_new.show(10)"
+      ],
+      "metadata": {
+        "id": "tzjSGkPPT-gh"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from pyspark.sql import SparkSession\n",
+        "\n",
+        "spark = SparkSession \\\n",
+        "    .builder \\\n",
+        "    .appName(\"Python Spark regression example\") \\\n",
+        "    .config(\"spark.some.config.option\", \"some-value\") \\\n",
+        "    .getOrCreate()"
+      ],
+      "metadata": {
+        "id": "ZG4Zsyt9U_uO"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from pyspark.sql import Row\n",
+        "from pyspark.ml.linalg import Vectors\n",
+        "def transData(data):\n",
+        "  return data.rdd.map(lambda r: [Vectors.dense(r[:-1]),r[-1]]).toDF(['features','label'])"
+      ],
+      "metadata": {
+        "id": "xvxYZM8ekyJc"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "#=================================Transform the dataset to DataFrame====================\n",
+        "transformed= transData(df_new)\n",
+        "transformed.show(5)"
+      ],
+      "metadata": {
+        "id": "gke9NfiBn_DL"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from pyspark.ml import Pipeline\n",
+        "from pyspark.ml.regression import LinearRegression\n",
+        "from pyspark.ml.feature import VectorIndexer\n",
+        "from pyspark.ml.evaluation import RegressionEvaluator\n",
+        "\n",
+        "# Automatically identify categorical features, and index them.\n",
+        "# We specify maxCategories so features with > 4 distinct values are treated as continuous.\n",
+        "\n",
+        "featureIndexer = VectorIndexer(inputCol=\"features\", \\\n",
+        "                               outputCol=\"indexedFeatures\",\\\n",
+        "                               maxCategories=4).fit(transformed)\n",
+        "\n",
+        "data = featureIndexer.transform(transformed)"
+      ],
+      "metadata": {
+        "id": "O2J8mNA0t-Wn"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "data.show(5,True)"
+      ],
+      "metadata": {
+        "id": "_N8JSdrJwGtY"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# ====Split the data into training and test sets (40% held out for testing)=============\n",
+        "(trainingData, testData) = transformed.randomSplit([0.6, 0.4])"
+      ],
+      "metadata": {
+        "id": "NgnmOD8GoNWn"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "trainingData.show(5)\n",
+        "testData.show(5)"
+      ],
+      "metadata": {
+        "id": "BadElnBXpBG3"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Fit Ordinary Least Square Regression Model"
+      ],
+      "metadata": {
+        "id": "l5NRvPuttk54"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Import LinearRegression class\n",
+        "from pyspark.ml.regression import LinearRegression\n",
+        "\n",
+        "# Define LinearRegression algorithm\n",
+        "lr = LinearRegression()"
+      ],
+      "metadata": {
+        "id": "fbQfDyeutfhm"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Chain indexer and tree in a Pipeline\n",
+        "pipeline = Pipeline(stages=[featureIndexer, lr])\n",
+        "\n",
+        "model = pipeline.fit(trainingData)"
+      ],
+      "metadata": {
+        "id": "B0OdZvlotqin"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "#=============================Summary of the Model=========================\n",
+        "\n",
+        "def modelsummary(model):\n",
+        "    import numpy as np\n",
+        "    print (\"Note: the last rows are the information for Intercept\")\n",
+        "    print (\"##\",\"-------------------------------------------------\")\n",
+        "    print (\"##\",\"  Estimate   |   Std.Error | t Values  |  P-value\")\n",
+        "    coef = np.append(list(model.coefficients),model.intercept)\n",
+        "    Summary=model.summary\n",
+        "\n",
+        "    for i in range(len(Summary.pValues)):\n",
+        "        print (\"##\",'{:10.6f}'.format(coef[i]),\\\n",
+        "        '{:10.6f}'.format(Summary.coefficientStandardErrors[i]),\\\n",
+        "        '{:8.3f}'.format(Summary.tValues[i]),\\\n",
+        "        '{:10.6f}'.format(Summary.pValues[i]))\n",
+        "\n",
+        "    print (\"##\",'---')\n",
+        "    print (\"##\",\"Mean squared error: % .6f\" \\\n",
+        "           % Summary.meanSquaredError, \", RMSE: % .6f\" \\\n",
+        "           % Summary.rootMeanSquaredError )\n",
+        "    print (\"##\",\"Multiple R-squared: %f\" % Summary.r2, \", \\\n",
+        "            Total iterations: %i\"% Summary.totalIterations)\n"
+      ],
+      "metadata": {
+        "id": "rbUnlXf1tv8A"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "modelsummary(model.stages[-1])"
+      ],
+      "metadata": {
+        "id": "kI6Kg7qB5wX5"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Make predictions"
+      ],
+      "metadata": {
+        "id": "DHyBM5Fg6jH9"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# ========================Make predictions======================================\n",
+        "predictions = model.transform(testData)"
+      ],
+      "metadata": {
+        "id": "5Iq7DpjC6Cv3"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Select example rows to display.\n",
+        "predictions.select(\"features\",\"label\",\"prediction\").show(5)"
+      ],
+      "metadata": {
+        "id": "QJIQIdmh6qJt"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Evaluation"
+      ],
+      "metadata": {
+        "id": "GNYh4U5h8RLs"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from pyspark.ml.evaluation import RegressionEvaluator\n",
+        "# Select (prediction, true label) and compute test error\n",
+        "evaluator = RegressionEvaluator(labelCol=\"label\",\n",
+        "                                predictionCol=\"prediction\",\n",
+        "                                metricName=\"rmse\")\n",
+        "\n",
+        "rmse = evaluator.evaluate(predictions)\n",
+        "print(\"Root Mean Squared Error (RMSE) on test data = %g\" % rmse)"
+      ],
+      "metadata": {
+        "id": "OUjy4QGK6vnb"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "y_true = predictions.select(\"label\").toPandas()\n",
+        "y_pred = predictions.select(\"prediction\").toPandas()\n",
+        "\n",
+        "import sklearn.metrics\n",
+        "r2_score = sklearn.metrics.r2_score(y_true, y_pred)\n",
+        "print('r2_score: {0}'.format(r2_score))"
+      ],
+      "metadata": {
+        "id": "pMESmFpW8Wfx"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [],
+      "metadata": {
+        "id": "s7MCRSBe-LON"
+      },
+      "execution_count": null,
+      "outputs": []
+    }
+  ]
+}
